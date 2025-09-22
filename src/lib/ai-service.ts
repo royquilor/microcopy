@@ -19,6 +19,13 @@ export const generateAIVariants = async (tone: Tone): Promise<AIVariant[]> => {
     });
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      
+      // Handle missing API key gracefully
+      if (response.status === 503 && errorData.error?.includes('API key not configured')) {
+        throw new Error('API_KEY_NOT_CONFIGURED');
+      }
+      
       throw new Error('Failed to generate AI variants');
     }
 

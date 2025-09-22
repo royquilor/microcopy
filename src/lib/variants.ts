@@ -55,6 +55,15 @@ export const getVariantsForTone = async (tone: Tone): Promise<Variant[]> => {
       return aiVariants;
     } catch (error) {
       console.error('AI generation failed, falling back to hardcoded variants:', error);
+      
+      // Don't increment usage if API key is not configured
+      if (error instanceof Error && error.message === 'API_KEY_NOT_CONFIGURED') {
+        console.log('OpenAI API key not configured, using fallback variants');
+      } else {
+        // Only increment usage if it was a real API call that failed
+        incrementUsage();
+      }
+      
       // Fall back to hardcoded variants if AI fails
       return fallbackVariants[tone] || [];
     }

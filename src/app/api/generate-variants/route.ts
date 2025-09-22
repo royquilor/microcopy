@@ -4,9 +4,15 @@ import OpenAI from 'openai';
 import { Tone } from '@/types';
 import { createPrompt } from '@/lib/ai-service';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization of OpenAI client
+const getOpenAI = () => {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OpenAI API key not configured');
+  }
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,13 +25,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: 'OpenAI API key not configured' },
-        { status: 500 }
-      );
-    }
-
+    // Initialize OpenAI client lazily
+    const openai = getOpenAI();
     const prompt = createPrompt(tone as Tone);
 
     const completion = await openai.chat.completions.create({
@@ -59,6 +60,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ variants });
   } catch (error) {
     console.error('OpenAI API error:', error);
+    
+    // Handle missing API key gracefully
+    if (error instanceof Error && error.message.includes('API key not configured')) {
+      return NextResponse.json(
+        { error: 'OpenAI API key not configured' },
+        { status: 503 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Failed to generate variants' },
       { status: 500 }
