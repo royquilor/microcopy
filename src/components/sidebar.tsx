@@ -6,6 +6,13 @@ import { VariantDropdown } from '@/components/variant-dropdown';
 import { ExportDropdown } from '@/components/export-dropdown';
 import { HelpDialog } from '@/components/help-dialog';
 
+interface UsageStatus {
+  remaining: number;
+  isLimitReached: boolean;
+  dailyLimit: number;
+  monthlyLimit: number;
+}
+
 interface SidebarProps {
   selectedTone: Tone;
   onToneChange: (tone: Tone) => void;
@@ -13,6 +20,8 @@ interface SidebarProps {
   selectedVariant: Variant | null;
   onVariantSelect: (variant: Variant) => void;
   buttonText: string;
+  isLoading: boolean;
+  usageStatus: UsageStatus;
 }
 
 export function Sidebar({
@@ -21,7 +30,9 @@ export function Sidebar({
   variants,
   selectedVariant,
   onVariantSelect,
-  buttonText
+  buttonText,
+  isLoading,
+  usageStatus
 }: SidebarProps) {
   return (
     <div className="w-80 bg-muted/10 border-l border-border/50 h-screen flex flex-col">
@@ -65,10 +76,26 @@ export function Sidebar({
       </div>
 
       {/* Footer */}
-      <div className="p-6 border-t border-border/50">
+      <div className="p-6 border-t border-border/50 space-y-2">
         <p className="text-xs text-muted-foreground">
           {selectedTone} tone • {variants.length} variants
         </p>
+        <div className="text-xs text-muted-foreground">
+          {usageStatus.isLimitReached ? (
+            <span className="text-orange-600">
+              AI limit reached • Using fallback variants
+            </span>
+          ) : (
+            <span>
+              {usageStatus.remaining} AI generations remaining today
+            </span>
+          )}
+        </div>
+        {isLoading && (
+          <div className="text-xs text-blue-600">
+            Generating AI variants...
+          </div>
+        )}
       </div>
     </div>
   );

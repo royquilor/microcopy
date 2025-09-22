@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tone, Variant } from '@/types';
-import { getVariantsForTone } from '@/lib/variants';
+import { getVariantsForTone, getFallbackVariants } from '@/lib/variants';
+import { getUsageData, getUsageStatus } from '@/lib/usage-tracking';
 import { ButtonPreview } from '@/components/button-preview';
 import { Sidebar } from '@/components/sidebar';
 
@@ -11,14 +12,37 @@ export default function MicrocopyStudio() {
   const [selectedTone, setSelectedTone] = useState<Tone>('friendly');
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [buttonText, setButtonText] = useState('Submit');
+  const [variants, setVariants] = useState<Variant[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [usageStatus, setUsageStatus] = useState(getUsageStatus(getUsageData()));
 
-  // Get variants for the selected tone
-  const variants = getVariantsForTone(selectedTone);
+  // Load initial variants
+  useEffect(() => {
+    loadVariants(selectedTone);
+  }, [selectedTone]);
+
+  // Load variants (AI or fallback)
+  const loadVariants = async (tone: Tone) => {
+    setIsLoading(true);
+    try {
+      const newVariants = await getVariantsForTone(tone);
+      setVariants(newVariants);
+      setSelectedVariant(null); // Reset selection when tone changes
+    } catch (error) {
+      console.error('Failed to load variants:', error);
+      // Fallback to hardcoded variants
+      setVariants(getFallbackVariants(tone));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle tone change
   const handleToneChange = (tone: Tone) => {
     setSelectedTone(tone);
-    setSelectedVariant(null); // Reset selection when tone changes
+    loadVariants(tone);
+    // Update usage status
+    setUsageStatus(getUsageStatus(getUsageData()));
   };
 
   // Handle variant selection
@@ -54,6 +78,8 @@ export default function MicrocopyStudio() {
         selectedVariant={selectedVariant}
         onVariantSelect={handleVariantSelect}
         buttonText={buttonText}
+        isLoading={isLoading}
+        usageStatus={usageStatus}
       />
     </div>
   );
